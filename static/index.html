@@ -1,6 +1,7 @@
 <!doctype html>
 <html>
 <head>
+<link rel="stylesheet" href="/theme.css">
   <meta charset="utf-8" />
   <title>Wishlist Elo — Quick Duel</title>
 <style>
@@ -26,10 +27,10 @@
   margin-bottom: 40px;
 ">
   <h1 style="margin:0; font-size:22px; font-weight:600; color:#111;">Wishlist Elo — Quick Duel</h1>
-  <div>
-    <a href="/leaderboard.html" style="padding:8px 18px; background:#007bff; color:white; border-radius:6px; text-decoration:none; font-weight:500; margin-right:8px;">Leaderboard</a>
-    <a href="/history.html" style="padding:8px 18px; background:#007bff; color:white; border-radius:6px; text-decoration:none; font-weight:500; margin-right:8px;">History</a>
-    <a href="/settings.html" style="padding:8px 18px; background:#007bff; color:white; border-radius:6px; text-decoration:none; font-weight:500;">Settings</a>
+  <div style="display:flex; gap:10px;">
+    <a href="/leaderboard.html" class="button button-leaderboard">Leaderboard</a>
+    <a href="/history.html" class="button button-history">History</a>
+    <a href="/settings.html" class="button button-settings">Settings</a>
   </div>
 </header>
 
@@ -88,7 +89,6 @@ async function loadSettings() {
 
 async function fetchPair() {
   let challengerId = null;
-  // "Play continuously" mode takes priority over other settings
   if (persistentChallenger) {
       challengerId = persistentChallenger;
   } else if (settings.winner_stays_on && lastWinnerId) {
@@ -97,14 +97,12 @@ async function fetchPair() {
 
   // Construct query parameters
   const params = new URLSearchParams();
-  if (challengerId) {
-      params.append('challenger', challengerId);
-  } else if (settings.prefer_close_rating) {
-      params.append('prefer_close_rating', 'true');
-  } else if (settings.prefer_far_rating) {
-      params.append('prefer_far_rating', 'true');
-  }
-  
+  if (challengerId) params.append('challenger', challengerId);
+  if (settings.prefer_close_rating) params.append('prefer_close_rating', 'true');
+  // Only one of these should be true at a time
+  if (!settings.prefer_close_rating && settings.prefer_far_rating) params.append('prefer_far_rating', 'true');
+  if (settings.prefer_lower_played) params.append('prefer_lower_played', 'true');
+
   const url = `/pair?${params.toString()}`;
   const res = await fetch(url);
 
@@ -145,10 +143,12 @@ async function vote(winner, loser, k=24) {
 
 async function passVote() {
   if (!currentPair) return;
-  const res = await fetch('/pass', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({a_appid: currentPai.a.appid, b_appid: currentPair.b.appid})
+  const params = new URLSearchParams({
+    a_appid: currentPair.a.appid,
+    b_appid: currentPair.b.appid
+  });
+  const res = await fetch(`/pass?${params.toString()}`, {
+    method: 'POST'
   });
   if (!res.ok) { alert('pass failed'); return; }
   const data = await res.json();
