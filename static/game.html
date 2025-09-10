@@ -144,6 +144,25 @@ header a.button:hover { background:#0056b3; }
 .settings-zone .action:hover {
   background:#218838;
 }
+
+.game-image-link {
+  display: inline-block;
+  text-decoration: none;
+}
+.game-image-link:hover img {
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.opponent-image-link {
+  display: inline-block;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.opponent-image-link:hover img {
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
 </style>
 </head>
 <body>
@@ -160,7 +179,9 @@ header a.button:hover { background:#0056b3; }
 
 <div class="main-container">
   <div class="game-header" id="game-header">
-    <img id="game-image" src="" alt="Game cover"/>
+    <a id="main-game-steam-link" class="game-image-link" href="#" target="_blank" rel="noopener">
+      <img id="game-image" src="" alt="Game cover"/>
+    </a>
     <div>
       <div class="title" id="game-title">Loading...</div>
       <div id="game-elo">ELO: —</div>
@@ -236,6 +257,9 @@ async function loadGame() {
   document.getElementById('game-elo').innerText = `ELO: ${Math.round(game.rating)}`;
   document.getElementById('game-winrate').innerText = `Winrate: ${game.winrate}%`;
 
+  // Update main game Steam store link
+  document.getElementById('main-game-steam-link').href = `https://store.steampowered.com/app/${appid}/`;
+
   document.getElementById('stat-elo').innerText = Math.round(game.rating);
   document.getElementById('stat-games').innerText = game.played;
   document.getElementById('stat-wins').innerText = game.wins;
@@ -295,10 +319,11 @@ if (leaderboardRes.ok) {
 
         // Add pass styling to the card if it was a pass
         row.className = isPass ? 'battle-card pass' : 'battle-card';
-
         row.innerHTML = `
           <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
-            <img src="${opponentImage}" alt="${opponentTitle}" style="width: 96px; height: 45px; object-fit: cover; border-radius: 4px; flex-shrink: 0;" />
+            <a href="https://store.steampowered.com/app/${opponentAppId}/" target="_blank" rel="noopener" class="opponent-image-link">
+              <img src="${opponentImage}" alt="${opponentTitle}" style="width: 96px; height: 45px; object-fit: cover; border-radius: 4px;" />
+            </a>
             <div>
               <div style="font-size: 12px; color: ${outcomeColor}; font-weight: bold; text-transform: uppercase; display: flex; align-items: center;">
                 ${outcomeText}

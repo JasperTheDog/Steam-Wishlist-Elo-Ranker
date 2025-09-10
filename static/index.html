@@ -11,6 +11,8 @@
   img { width:100%; height:200px; object-fit:cover; border-radius:6px; }
   button { margin:4px 0; padding:8px 12px; border-radius:6px; cursor:pointer; }
   .actions { display:flex; justify-content:center; gap:12px; margin-top:40px; flex-wrap:wrap; } /* Increased margin-top */
+  .game-image-link { display: block; text-decoration: none; }
+  .game-image-link:hover img { opacity: 0.8; transition: opacity 0.2s; }
 </style>
 </head>
 <body>
@@ -46,19 +48,23 @@
 <div class="container">
     <div class="card" id="left">
       <h3 id="left-title">Loading…</h3>
-      <img id="left-img" src="" alt="left" />
+      <a id="left-steam-link" class="game-image-link" href="#" target="_blank" rel="noopener">
+        <img id="left-img" src="" alt="left" />
+      </a>
       <div>
         <button id="left-btn">Pick Left</button><br>
-        <button id="left-strong-btn">Pick Left – Strong</button>
+        <button id="left-strong-btn">Pick Left — Strong</button>
       </div>
       <div id="left-rating"></div>
     </div>
     <div class="card" id="right">
       <h3 id="right-title">Loading…</h3>
-      <img id="right-img" src="" alt="right" />
+      <a id="right-steam-link" class="game-image-link" href="#" target="_blank" rel="noopener">
+        <img id="right-img" src="" alt="right" />
+      </a>
       <div>
         <button id="right-btn">Pick Right</button><br>
-        <button id="right-strong-btn">Pick Right – Strong</button>
+        <button id="right-strong-btn">Pick Right — Strong</button>
       </div>
       <div id="right-rating"></div>
     </div>
@@ -127,6 +133,10 @@ async function fetchPair() {
   document.getElementById('right-rating').innerText = 'Rating: ' + Math.round(rightGame.rating);
   document.getElementById('left-img').src = leftGame.image_path ? `/game_image/${leftGame.appid}` : (leftGame.image_url || '');
   document.getElementById('right-img').src = rightGame.image_path ? `/game_image/${rightGame.appid}` : (rightGame.image_url || '');
+  
+  // Update Steam store links
+  document.getElementById('left-steam-link').href = `https://store.steampowered.com/app/${leftGame.appid}/`;
+  document.getElementById('right-steam-link').href = `https://store.steampowered.com/app/${rightGame.appid}/`;
 }
 
 async function vote(winner, loser, k=24) {
