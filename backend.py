@@ -36,6 +36,7 @@ class Settings(BaseModel):
     winner_stays_on: bool = False
     prefer_close_rating: bool = False
     prefer_far_rating: bool = False
+    prefer_lower_played: bool = False
 
 class Game(BaseModel):
     appid: str
@@ -87,7 +88,8 @@ def load_settings() -> Dict:
     return {
         "winner_stays_on": False,
         "prefer_close_rating": False,
-        "prefer_far_rating": False
+        "prefer_far_rating": False,
+        "prefer_lower_played": False,
     }
 
 def save_settings(d: Dict):
@@ -264,45 +266,56 @@ async def cache_image_for_game(game: Dict) -> Optional[str]:
 # -----------------------
 # Pairing endpoint
 # -----------------------
-# Modify the existing "/pair" endpoint
 @app.get("/pair", response_model=PairResponse)
 async def pair(
     prefer_close_rating: bool = False,
     prefer_far_rating: bool = False,
-    challenger: Optional[str] = None, # Add this new parameter
+    prefer_lower_played: bool = False,
+    challenger: Optional[str] = None,
 ):
-    """
-    Returns two game objects for comparison.
-    Can accept a 'challenger' appid to force one of the games in the pair.
-    """
     data = load_wishlist()
     games = list(data.values())
     if len(games) < 2:
         raise HTTPException(400, "Need at least 2 games in wishlist")
 
-    g1, g2 = None, None
+    def pick_from_top(sorted_games, exclude_appid=None):
+        top_n = max(2, int(len(sorted_games) * 0.1))
+        candidates = [g for g in sorted_games if g["appid"] != exclude_appid] if exclude_appid else sorted_games
+        candidates = candidates[:top_n]
+        return random.choice(candidates) if candidates else None
 
+    def multi_sort(games, g1=None):
+        # Compose sort keys based on preferences
+        def sort_key(g):
+            keys = []
+            # Sort by lower player first if preferred
+            if prefer_lower_played:
+                keys.append(g.get("played", 0))
+            # Sort by rating difference if g1 is given
+            if g1:
+                if prefer_close_rating:
+                    keys.append(abs(g["rating"] - g1["rating"]))
+                elif prefer_far_rating:
+                    keys.append(-abs(g["rating"] - g1["rating"]))
+            return tuple(keys)
+        return sorted(games, key=sort_key)
+
+    # If challenger mode is active, always use challenger as g1
     if challenger and challenger in data:
         g1 = data[challenger]
-        # Find a random opponent that is not the challenger
         possible_opponents = [g for g in games if g["appid"] != challenger]
         if not possible_opponents:
-             raise HTTPException(400, "Not enough games to find an opponent.")
-        g2 = random.choice(possible_opponents)
-    elif prefer_close_rating:
-        g1 = random.choice(games)
-        candidates = sorted(games, key=lambda g: abs(g["rating"] - g1["rating"]))
-        g2 = next((c for c in candidates if c["appid"] != g1["appid"]), None)
-    elif prefer_far_rating:
-        g1 = random.choice(games)
-        candidates = sorted(games, key=lambda g: -abs(g["rating"] - g1["rating"]))
-        g2 = next((c for c in candidates if c["appid"] != g1["appid"]), None)
+            raise HTTPException(400, "Not enough games to find an opponent.")
+
+        sorted_opponents = multi_sort(possible_opponents, g1)
+        g2 = pick_from_top(sorted_opponents)
     else:
-        g1, g2 = random.sample(games, 2)
+        g1 = pick_from_top(multi_sort(games))
+        sorted_games = multi_sort([g for g in games if g["appid"] != g1["appid"]], g1)
+        g2 = pick_from_top(sorted_games)
 
     if not g1 or not g2:
-         # Fallback in case logic fails to find two distinct games
-         g1, g2 = random.sample(games, 2)
+        g1, g2 = random.sample(games, 2)
 
     asyncio.create_task(cache_image_for_game(g1))
     asyncio.create_task(cache_image_for_game(g2))
@@ -381,7 +394,11 @@ def pass_vote(a_appid: str, b_appid: str, k: float = 24.0):
     save_wishlist(data)
     append_history({
         "winner": winner["appid"],
+        "winner_title": winner["title"],
+        "winner_image": winner.get("image_path") or winner.get("image_url"),
         "loser": loser["appid"],
+        "loser_title": loser["title"],
+        "loser_image": loser.get("image_path") or loser.get("image_url"),
         "pass": True,
         "r_w_before": r_w,
         "r_l_before": r_l,
@@ -389,7 +406,6 @@ def pass_vote(a_appid: str, b_appid: str, k: float = 24.0):
         "r_l_after": r_l_new,
         "k": k
     })
-     # Also count toward total games
     stats = load_stats()
     stats["total_played"] = stats.get("total_played", 0) + 1
     save_stats(stats)
@@ -449,13 +465,26 @@ def leaderboard(q: str = "", limit: int = 200):
 @app.get("/history")
 def get_history():
     """
-    Return the battle history (array of past votes), most recent first.
+    Return the battle history (array of past votes), most recent first,
+    with winner/loser titles and images filled in from current wishlist.
     """
     if HISTORY_FILE.exists():
         hist = json.loads(HISTORY_FILE.read_text())
     else:
         hist = []
-    return {"count": len(hist), "history": hist[::-1]}
+    games = load_wishlist()
+    out = []
+    for h in reversed(hist):
+        winner = games.get(h["winner"], {})
+        loser = games.get(h["loser"], {})
+        out.append({
+            **h,
+            "winner_title": winner.get("title", h.get("winner", "")),
+            "winner_image": winner.get("image_path") or winner.get("image_url", ""),
+            "loser_title": loser.get("title", h.get("loser", "")),
+            "loser_image": loser.get("image_path") or loser.get("image_url", ""),
+        })
+    return {"count": len(out), "history": out}
 
 # -----------------------
 # Danger Zone endpoints
