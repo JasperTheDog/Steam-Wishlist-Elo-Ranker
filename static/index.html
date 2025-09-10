@@ -1,0 +1,189 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Wishlist Elo — Quick Duel</title>
+<style>
+  body { font-family: system-ui, sans-serif; display:flex; flex-direction:column; align-items:center; margin:0; padding-bottom: 24px; }
+  .container { display:flex; gap:24px; }
+  .card { width:320px; border:1px solid #ddd; padding:10px; border-radius:8px; text-align:center; }
+  img { width:100%; height:200px; object-fit:cover; border-radius:6px; }
+  button { margin:4px 0; padding:8px 12px; border-radius:6px; cursor:pointer; }
+  .actions { display:flex; justify-content:center; gap:12px; margin-top:40px; flex-wrap:wrap; } /* Increased margin-top */
+</style>
+</head>
+<body>
+<header style="
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 32px;
+  background: #ffffff;
+  font-family: system-ui, sans-serif;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  margin-bottom: 40px;
+">
+  <h1 style="margin:0; font-size:22px; font-weight:600; color:#111;">Wishlist Elo — Quick Duel</h1>
+  <div>
+    <a href="/leaderboard.html" style="padding:8px 18px; background:#007bff; color:white; border-radius:6px; text-decoration:none; font-weight:500; margin-right:8px;">Leaderboard</a>
+    <a href="/history.html" style="padding:8px 18px; background:#007bff; color:white; border-radius:6px; text-decoration:none; font-weight:500; margin-right:8px;">History</a>
+    <a href="/settings.html" style="padding:8px 18px; background:#007bff; color:white; border-radius:6px; text-decoration:none; font-weight:500;">Settings</a>
+  </div>
+</header>
+
+<div id="challenger-mode-status" style="display: none; margin: 0 0 16px 0; padding: 8px 16px; background: #e2f0d9; border: 1px solid #b7d0a8; border-radius: 6px; text-align: center;">
+  Now dueling with <strong id="challenger-name"></strong>.
+  <button id="exit-challenger-mode" style="margin-left:8px; font-size:12px; padding: 4px 8px;">Exit Mode</button>
+</div>
+
+
+<div id="total-played" style="text-align:center; margin-bottom:32px; font-size:14px; color:#555;">
+  Total games played: 0
+</div>
+<div class="container">
+    <div class="card" id="left">
+      <h3 id="left-title">Loading…</h3>
+      <img id="left-img" src="" alt="left" />
+      <div>
+        <button id="left-btn">Pick Left</button><br>
+        <button id="left-strong-btn">Pick Left – Strong</button>
+      </div>
+      <div id="left-rating"></div>
+    </div>
+    <div class="card" id="right">
+      <h3 id="right-title">Loading…</h3>
+      <img id="right-img" src="" alt="right" />
+      <div>
+        <button id="right-btn">Pick Right</button><br>
+        <button id="right-strong-btn">Pick Right – Strong</button>
+      </div>
+      <div id="right-rating"></div>
+    </div>
+</div>
+<div class="actions">
+    <button id="pass-btn">Pass (Too Close)</button>
+</div>
+
+<script>
+let currentPair = null;
+let settings = {};
+let persistentChallenger = null;
+let lastWinnerId = null;
+
+async function fetchStats() {
+  const res = await fetch('/stats');
+  if(!res.ok) return;
+  const data = await res.json();
+  document.getElementById('total-played').innerText = 'Total games played: ' + data.total_played;
+}
+
+async function loadSettings() {
+    const res = await fetch('/settings');
+    if (res.ok) {
+        settings = await res.json();
+    }
+}
+
+async function fetchPair() {
+  let challengerId = null;
+  // "Play continuously" mode takes priority over other settings
+  if (persistentChallenger) {
+      challengerId = persistentChallenger;
+  } else if (settings.winner_stays_on && lastWinnerId) {
+      challengerId = lastWinnerId;
+  }
+
+  // Construct query parameters
+  const params = new URLSearchParams();
+  if (challengerId) {
+      params.append('challenger', challengerId);
+  } else if (settings.prefer_close_rating) {
+      params.append('prefer_close_rating', 'true');
+  } else if (settings.prefer_far_rating) {
+      params.append('prefer_far_rating', 'true');
+  }
+  
+  const url = `/pair?${params.toString()}`;
+  const res = await fetch(url);
+
+  if (!res.ok) { alert('Failed to fetch a pair of games.'); return; }
+  const data = await res.json();
+  currentPair = data;
+  fetchStats();
+
+  let leftGame = data.a;
+  let rightGame = data.b;
+
+  // If in a challenger mode, ensure the challenger is on the left
+  if (challengerId && data.b.appid === challengerId) {
+    leftGame = data.b;
+    rightGame = data.a;
+    currentPair = { a: leftGame, b: rightGame };
+  }
+
+  document.getElementById('left-title').innerHTML = `<a href="/game/${encodeURIComponent(leftGame.appid)}" style="color:inherit; text-decoration:none; cursor:pointer;">${leftGame.title}</a>`;
+  document.getElementById('right-title').innerHTML = `<a href="/game/${encodeURIComponent(rightGame.appid)}" style="color:inherit; text-decoration:none; cursor:pointer;">${rightGame.title}</a>`;
+  document.getElementById('left-rating').innerText = 'Rating: ' + Math.round(leftGame.rating);
+  document.getElementById('right-rating').innerText = 'Rating: ' + Math.round(rightGame.rating);
+  document.getElementById('left-img').src = leftGame.image_path ? `/game_image/${leftGame.appid}` : (leftGame.image_url || '');
+  document.getElementById('right-img').src = rightGame.image_path ? `/game_image/${rightGame.appid}` : (rightGame.image_url || '');
+}
+
+async function vote(winner, loser, k=24) {
+  const res = await fetch('/vote?k=' + k, {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({winner_appid: winner, loser_appid: loser})
+  });
+  if (!res.ok) { alert('vote failed'); return; }
+  const data = await res.json();
+  lastWinnerId = data.winner;
+  await fetchPair();
+}
+
+async function passVote() {
+  if (!currentPair) return;
+  const res = await fetch('/pass', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({a_appid: currentPai.a.appid, b_appid: currentPair.b.appid})
+  });
+  if (!res.ok) { alert('pass failed'); return; }
+  const data = await res.json();
+  lastWinnerId = data.winner;
+  await fetchPair();
+}
+
+async function initializePage() {
+    await loadSettings();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const challengerId = urlParams.get('play_with');
+    const challengerTitle = urlParams.get('title');
+
+    if (challengerId && challengerTitle) {
+        persistentChallenger = challengerId;
+        document.getElementById('challenger-name').innerText = challengerTitle;
+        document.getElementById('challenger-mode-status').style.display = 'block';
+    }
+    
+    fetchPair();
+}
+
+// Event listeners
+document.getElementById('left-btn').addEventListener('click', () => { if(currentPair) vote(currentPair.a.appid, currentPair.b.appid, 24); });
+document.getElementById('right-btn').addEventListener('click', () => { if(currentPair) vote(currentPair.b.appid, currentPair.a.appid, 24); });
+document.getElementById('left-strong-btn').addEventListener('click', () => { if(currentPair) vote(currentPair.a.appid, currentPair.b.appid, 48); });
+document.getElementById('right-strong-btn').addEventListener('click', () => { if(currentPair) vote(currentPair.b.appid, currentPair.a.appid, 48); });
+document.getElementById('pass-btn').addEventListener('click', () => { if (currentPair) passVote(); });
+document.getElementById('exit-challenger-mode').addEventListener('click', () => {
+    window.location.href = '/index.html';
+});
+
+// Initial load
+initializePage();
+</script>
+</body>
+</html>

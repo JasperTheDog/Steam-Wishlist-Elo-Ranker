@@ -1,0 +1,311 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Wishlist Elo — Game</title>
+<style>
+body {
+  font-family: system-ui, sans-serif;
+  margin:0;
+  padding:0;
+  background:#f9f9f9;
+}
+
+header {
+  display:flex;
+  justify-content: space-between;
+  align-items:center;
+  padding:16px 32px;
+  background:#fff;
+  box-shadow:0 1px 4px rgba(0,0,0,0.08);
+  position: sticky;
+  top:0;
+  z-index:100;
+}
+header h2 { margin:0; font-size:22px; font-weight:600; }
+header a.button {
+  padding:8px 18px;
+  background:#007bff;
+  color:white;
+  border-radius:6px;
+  text-decoration:none;
+  font-weight:500;
+  margin-left:8px;
+  transition: background 0.2s;
+}
+header a.button:hover { background:#0056b3; }
+
+.main-container {
+  max-width:900px;
+  margin:24px auto;
+  padding:0 16px;
+  display:flex;
+  flex-direction:column;
+  gap:24px;
+}
+
+.game-header {
+  display:flex;
+  gap:20px;
+  align-items:center;
+  background:#fff;
+  border-radius:8px;
+  padding:16px;
+  box-shadow:0 1px 6px rgba(0,0,0,0.08);
+}
+.game-header img {
+  width:160px;
+  height:75px;
+  object-fit:cover;
+  border-radius:6px;
+}
+.game-header .title {
+  font-size:22px;
+  font-weight:600;
+}
+
+.section {
+  background:#fff;
+  border-radius:8px;
+  padding:16px;
+  box-shadow:0 1px 6px rgba(0,0,0,0.08);
+}
+.section h3 {
+  margin-top:0;
+  margin-bottom:12px;
+  font-size:18px;
+}
+
+.stats-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:12px;
+}
+.stat {
+  text-align:center;
+}
+.stat .value {
+  font-size:20px;
+  font-weight:600;
+}
+.stat .label {
+  font-size:12px;
+  color:#555;
+}
+
+.history-list {
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.battle-card {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px;
+  border-radius:6px;
+  background:#f7f7f7;
+}
+
+.settings-zone button {
+  padding:8px 14px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  font-weight:500;
+}
+.settings-zone .danger {
+  background:#dc3545;
+  color:white;
+}
+.settings-zone .danger:hover {
+  background:#a71d2a;
+}
+.settings-zone .action {
+  background:#28a745;
+  color:white;
+}
+.settings-zone .action:hover {
+  background:#218838;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h2>Game Details</h2>
+  <div>
+    <a href="/index.html" class="button">Quick Duel</a>
+    <a href="/leaderboard.html" class="button">Leaderboard</a>
+    <a href="/history.html" class="button">History</a>
+  </div>
+</header>
+
+<div class="main-container">
+  <div class="game-header" id="game-header">
+    <img id="game-image" src="" alt="Game cover"/>
+    <div>
+      <div class="title" id="game-title">Loading...</div>
+      <div id="game-elo">ELO: —</div>
+      <div id="game-winrate">Winrate: —</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Stats</h3>
+    <div class="stats-grid">
+      <div class="stat">
+        <div class="value" id="stat-elo">—</div>
+        <div class="label">ELO</div>
+      </div>
+       <div class="stat">
+        <div class="value" id="stat-rank">—</div>
+        <div class="label">Rank</div>
+      </div>
+      <div class="stat">
+        <div class="value" id="stat-percentile">—</div>
+        <div class="label">Percentile</div>
+      </div>
+      <div class="stat">
+        <div class="value" id="stat-games">—</div>
+        <div class="label">Games Played</div>
+      </div>
+      <div class="stat">
+        <div class="value" id="stat-wins">—</div>
+        <div class="label">Wins</div>
+      </div>
+      <div class="stat">
+        <div class="value" id="stat-losses">—</div>
+        <div class="label">Losses</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Match History</h3>
+    <div class="history-list" id="history-list">Loading…</div>
+  </div>
+
+  <div class="section settings-zone">
+      <h3>Settings</h3>
+      <button class="action" onclick="playWithThisGame()">Play Duels with this Game</button>
+      <hr style="border:none; border-top:1px solid #eee; margin:16px 0;">
+      <button class="danger" onclick="deleteGame()">Delete from Wishlist</button>
+  </div>
+</div>
+
+<script>
+function getAppIdFromUrl() {
+  const parts = window.location.pathname.split('/');
+  return parts[parts.length-1];
+}
+
+async function loadGame() {
+  const appid = getAppIdFromUrl();
+
+  // fetch game info + stats
+  const res = await fetch(`/game_info/${appid}`);
+  if(!res.ok) { 
+    document.getElementById('game-title').innerText = 'Failed to load';
+    return;
+  }
+  const game = await res.json();
+
+  document.getElementById('game-title').innerText = game.title;
+  document.getElementById('game-image').src = game.image_path ? `/game_image/${encodeURIComponent(game.appid)}` : (game.image_url || '');
+  document.getElementById('game-elo').innerText = `ELO: ${Math.round(game.rating)}`;
+  document.getElementById('game-winrate').innerText = `Winrate: ${game.winrate}%`;
+
+  document.getElementById('stat-elo').innerText = Math.round(game.rating);
+  document.getElementById('stat-games').innerText = game.played;
+  document.getElementById('stat-wins').innerText = game.wins;
+  document.getElementById('stat-losses').innerText = game.losses;
+
+  // Fetch leaderboard to calculate rank and percentile
+  const leaderboardRes = await fetch('/leaderboard');
+if (leaderboardRes.ok) {
+    const leaderboardData = await leaderboardRes.json();
+    const totalGames = leaderboardData.count;
+    const rank = leaderboardData.games.findIndex(g => g.appid === appid) + 1;
+
+    if (rank > 0 && totalGames > 0) {
+        document.getElementById('stat-rank').innerText = `#${rank}`;
+        const percentile = (rank / totalGames) * 100;
+        const percentileElem = document.getElementById('stat-percentile');
+        percentileElem.innerText = `${percentile.toFixed(1)}% of Top`;
+        percentileElem.style.color = '';
+        if (percentile >= 80) {
+            percentileElem.style.color = 'red';
+        } else if (percentile <= 20) {
+            percentileElem.style.color = 'green';
+        }
+    }
+}
+
+
+  // fetch game history
+  const hres = await fetch(`/game_history/${appid}`);
+  if(hres.ok) {
+    const historyData = await hres.json();
+    const list = document.getElementById('history-list');
+    list.innerHTML = '';
+    if (historyData.count === 0) {
+      list.innerHTML = '<div>No matches yet</div>';
+    } else {
+      historyData.history.forEach(h => {
+        const row = document.createElement('div');
+        row.className = 'battle-card';
+
+        const isWin = h.winner === appid;
+        const opponentTitle = isWin ? h.loser_title : h.winner_title;
+        const opponentAppId = isWin ? h.loser : h.winner;
+        const opponentImage = isWin ? h.loser_image : h.winner_image;
+        
+        const outcomeText = isWin ? 'Victory against' : 'Defeat against';
+        const outcomeColor = isWin ? 'green' : 'red';
+        
+        const ratingChange = isWin ? (h.r_w_after - h.r_w_before) : (h.r_l_after - h.r_l_before);
+        const sign = ratingChange >= 0 ? '+' : '';
+
+        row.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+            <img src="${opponentImage}" alt="${opponentTitle}" style="width: 96px; height: 45px; object-fit: cover; border-radius: 4px; flex-shrink: 0;" />
+            <div>
+              <div style="font-size: 12px; color: ${outcomeColor}; font-weight: bold; text-transform: uppercase;">${isWin ? 'Victory' : 'Defeat'}</div>
+              <a href="/game/${opponentAppId}" style="text-decoration:none; color:inherit;">vs ${opponentTitle}</a>
+            </div>
+          </div>
+          <div style="text-align:right; font-size: 16px;">
+            <span style="color:${outcomeColor}; font-weight:600;">${sign}${Math.round(ratingChange)}</span>
+            <span style="font-size: 12px; color: #555;">ELO</span>
+          </div>
+        `;
+        list.appendChild(row);
+      });
+    }
+  }
+}
+
+async function deleteGame() {
+  const appid = getAppIdFromUrl();
+  if(!confirm('Are you sure you want to delete this game from your wishlist?')) return;
+  const res = await fetch(`/delete_game/${appid}`, {method:'POST'});
+  if (!res.ok) {
+    alert('Failed to delete game.');
+    return;
+  }
+  alert('Game removed from wishlist.');
+  window.location.href = '/leaderboard.html';
+}
+
+function playWithThisGame() {
+  const appid = getAppIdFromUrl();
+  const title = document.getElementById('game-title').innerText;
+  window.location.href = `/index.html?play_with=${appid}&title=${encodeURIComponent(title)}`;
+}
+
+loadGame();
+</script>
+
+</body>
+</html>

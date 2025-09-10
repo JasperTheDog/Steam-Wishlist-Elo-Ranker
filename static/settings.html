@@ -1,0 +1,295 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Wishlist Elo — Settings</title>
+<style>
+  body {
+    font-family: system-ui, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f9f9f9;
+  }
+  header {
+    display:flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 32px;
+    background: #ffffff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  h2 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+  }
+  a.button {
+    padding: 8px 18px;
+    background: #007bff;
+    color:white;
+    border-radius:6px;
+    text-decoration:none;
+    font-weight:500;
+    transition: background 0.2s;
+  }
+  a.button:hover {
+    background: #0056b3;
+  }
+  .container {
+    max-width: 800px;
+    margin: 24px auto;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+  .section {
+    background: #fff;
+    border-radius: 8px;
+    padding: 16px 24px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  }
+  .section h3 {
+    margin-top: 0;
+  }
+  .setting-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #eee;
+  }
+  .setting-item:last-child {
+    border-bottom: none;
+  }
+  .setting-item .label {
+    font-weight: 500;
+  }
+  .setting-item .desc {
+    font-size: 14px;
+    color: #555;
+    margin-top: 4px;
+  }
+  /* Toggle Switch CSS */
+  .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 28px; }
+  .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+  input:checked + .slider { background-color: #28a745; }
+  input:checked + .slider:before { transform: translateX(22px); }
+  .backup-section {
+    background: #fff;
+    border: 1.5px solid #28a745;
+    box-shadow: 0 1px 6px rgba(40,167,69,0.06);
+  }
+  .restore-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+  .restore-btn {
+    padding: 6px 16px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .restore-btn:hover {
+    background: #0056b3;
+  }
+  .snapshot-btn {
+    padding: 8px 18px;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .snapshot-btn:hover {
+    background: #1e7e34;
+  }
+  @media (max-width: 600px) {
+    .restore-row {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
+    .backup-section {
+      padding: 12px 8px;
+    }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h2>Settings</h2>
+    <a href="/index.html" class="button">Quick Duel</a>
+  </header>
+
+  <div class="container">
+    <div class="section">
+        <h3>Duel Settings</h3>
+        <div class="setting-item">
+            <div>
+                <div class="label">Winner Stays On</div>
+                <div class="desc">After a vote, the winner remains for the next duel.</div>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="winner-stays-on">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="setting-item">
+            <div>
+                <div class="label">Prefer Close Elo</div>
+                <div class="desc">Prioritize pairing games with a similar rating.</div>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="prefer-close-elo">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="setting-item">
+            <div>
+                <div class="label">Prefer Far Elo</div>
+                <div class="desc">Prioritize pairing games with a very different rating.</div>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="prefer-far-elo">
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <div class="section backup-section">
+      <h3 style="color:#28a745; margin-top:0;">Backup &amp; Restore</h3>
+      <div class="setting-item" style="flex-direction:column; align-items:flex-start; gap:16px; border-bottom:none; width:100%;">
+        <div class="restore-row">
+          <label for="restore-version" style="font-weight:500; margin-right:8px;">Restore previous version:</label>
+          <select id="restore-version" style="min-width:160px; padding:6px 10px; border-radius:4px; border:1px solid #b7e4c7; background:#fff;"></select>
+          <button id="restore-btn" class="restore-btn">Restore</button>
+        </div>
+        <div>
+          <button id="snapshot-btn" class="snapshot-btn">Save Current Version</button>
+        </div>
+        <div class="desc" style="font-size:13px; color:#277d3a; margin-top:4px;">
+          Create a backup of your current data, or restore from a previous version.
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3 style="color:#c00;">Danger Zone</h3>
+      <p>Reset all ratings, wins, losses, and total games played. History will also be cleared. Backups will be created automatically.</p>
+      <button id="reset-btn" style="padding:10px 20px; background:#c00; color:white; border:none; border-radius:6px; font-weight:600; cursor:pointer;">
+        Reset All Ratings
+      </button>
+    </div>
+  </div>
+
+<script>
+let settings = {};
+const winnerStaysOn = document.getElementById('winner-stays-on');
+const preferCloseElo = document.getElementById('prefer-close-elo');
+const preferFarElo = document.getElementById('prefer-far-elo');
+
+async function loadSettings() {
+  const res = await fetch('/settings');
+  if (res.ok) {
+      settings = await res.json();
+      winnerStaysOn.checked = settings.winner_stays_on || false;
+      preferCloseElo.checked = settings.prefer_close_rating || false;
+      preferFarElo.checked = settings.prefer_far_rating || false;
+  }
+}
+
+async function saveSettings() {
+    const newSettings = {
+        winner_stays_on: winnerStaysOn.checked,
+        prefer_close_rating: preferCloseElo.checked,
+        prefer_far_rating: preferFarElo.checked,
+    };
+    await fetch('/settings', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(newSettings)
+    });
+}
+
+// Ensure close and far are mutually exclusive
+preferCloseElo.addEventListener('change', () => {
+    if (preferCloseElo.checked) {
+        preferFarElo.checked = false;
+    }
+    saveSettings();
+});
+
+preferFarElo.addEventListener('change', () => {
+    if (preferFarElo.checked) {
+        preferCloseElo.checked = false;
+    }
+    saveSettings();
+});
+
+winnerStaysOn.addEventListener('change', saveSettings);
+
+// Danger Zone Logic
+document.getElementById("reset-btn").addEventListener("click", async () => {
+    if(!confirm("Are you sure? This will reset all ratings, wins/losses, history, and stats.")) return;
+    const res = await fetch('/reset_ratings', {method:'POST'});
+    if(!res.ok){ alert('Reset failed'); return; }
+    alert((await res.json()).message);
+});
+
+async function loadBackups() {
+  const res = await fetch('/list_backups');
+  if(!res.ok) return;
+  const data = await res.json();
+  const sel = document.getElementById('restore-version');
+  sel.innerHTML = '';
+  // Reverse the array before adding options
+  data.backups.slice().reverse().forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.text = `Version ${v}`;
+    sel.appendChild(opt);
+  });
+}
+loadBackups();
+
+document.getElementById('restore-btn').addEventListener('click', async () => {
+  const version = document.getElementById('restore-version').value;
+  if(!version) return;
+  if(!confirm(`Are you sure you want to restore version ${version}? This will overwrite current data.`)) return;
+  const res = await fetch('/restore_version', {
+    method:'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({version})
+  });
+  if(!res.ok){ alert('Restore failed'); return; }
+  const data = await res.json();
+  alert(data.message);
+  loadBackups();
+});
+
+document.getElementById('snapshot-btn').addEventListener('click', async () => {
+  const res = await fetch('/save_snapshot', {method:'POST'});
+  if(!res.ok){ alert('Snapshot failed'); return; }
+  const data = await res.json();
+  alert(data.message);
+  loadBackups();
+});
+
+// Initial Load
+loadSettings();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,148 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Wishlist Elo — Leaderboard</title>
+<style>
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 16px; }
+  h1 { text-align: center; }
+  #search { display:block; margin: 0 auto 16px auto; padding:8px; width:80%; font-size:16px; }
+  #table-container { max-width: 800px; margin:0 auto; overflow-y:auto; height:80vh; border:1px solid #ddd; border-radius:8px; }
+  table { width:100%; border-collapse: collapse; }
+  th, td { padding:8px; border-bottom:1px solid #ddd; text-align:left; }
+  th { position: sticky; top:0; background:#f9f9f9; }
+  img { width:64px; height:36px; object-fit:cover; border-radius:4px; }
+</style>
+</head>
+<body>
+<header style="
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 24px;
+    background: #ffffff;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    font-family: system-ui, sans-serif;
+">
+    <h2 style="margin:0; font-size:18px; font-weight:500; color:#333; flex:1; text-align:left;">
+        Wishlist Elo — Leaderboard
+    </h2>
+    <div style="flex:2; display:flex; justify-content:flex-end; gap:10px;">
+        <a href="/index.html" style="
+            padding:8px 18px;
+            background:#007bff;
+            color:white;
+            border-radius:6px;
+            text-decoration:none;
+            font-weight:500;
+            transition: background 0.2s;
+            min-width: 100px;
+            text-align: center;
+            display: inline-block;
+        " onmouseover="this.style.background='#0056b3'" onmouseout="this.style.background='#007bff'">
+            Quick Duel
+        </a>
+        <a href="/history.html" style="
+            padding:8px 18px;
+            background:#007bff;
+            color:white;
+            border-radius:6px;
+            text-decoration:none;
+            font-weight:500;
+            transition: background 0.2s;
+            min-width: 100px;
+            text-align: center;
+            display: inline-block;
+        " onmouseover="this.style.background='#0056b3'" onmouseout="this.style.background='#007bff'">
+            History
+        </a>
+        <a href="/leaderboard.html" style="
+            padding:8px 18px;
+            background:#007bff;
+            color:white;
+            border-radius:6px;
+            text-decoration:none;
+            font-weight:500;
+            transition: background 0.2s;
+            min-width: 100px;
+            text-align: center;
+            display: inline-block;
+        " onmouseover="this.style.background='#0056b3'" onmouseout="this.style.background='#007bff'">
+            Leaderboard
+        </a>
+        <a href="/settings.html" style="
+            padding:8px 18px;
+            background:#007bff;
+            color:white;
+            border-radius:6px;
+            text-decoration:none;
+            font-weight:500;
+            transition: background 0.2s;
+            min-width: 100px;
+            text-align: center;
+            display: inline-block;
+        " onmouseover="this.style.background='#0056b3'" onmouseout="this.style.background='#007bff'">
+            Settings
+        </a>
+    </div>
+</header>
+<h1>Leaderboard</h1>
+<input id="search" type="text" placeholder="Search games..." />
+
+<div id="table-container">
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Title</th>
+        <th>Rating</th>
+        <th>Wins</th>
+        <th>Losses</th>
+        <th>Played</th>
+        <th>Win%</th>
+        <th>Image</th>
+      </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
+</div>
+
+<script>
+let currentSearch = "";
+
+async function fetchLeaderboard(q="") {
+  const url = "/leaderboard?q=" + encodeURIComponent(q);
+  const res = await fetch(url);
+  if(!res.ok) { alert("Failed to load leaderboard"); return; }
+  const data = await res.json();
+  const tbody = document.getElementById("table-body");
+  tbody.innerHTML = "";
+  data.games.forEach((g,i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+    <td>${i+1}</td>
+    <td><a href="/game/${g.appid}" style="text-decoration:none; color:inherit;">${g.title}</a></td>
+    <td>${Math.round(g.rating)}</td>
+    <td>${g.wins}</td>
+    <td>${g.losses}</td>
+    <td>${g.played}</td>
+    <td>${g.winrate_percent}%</td>
+    <td><a href="/game/${g.appid}">${
+    g.image_path ? '<img src="/game_image/' + encodeURIComponent(g.appid) + '"/>' 
+                : (g.image_url ? '<img src="'+g.image_url+'"/>' : '')
+    }</a></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+document.getElementById("search").addEventListener("input", (e) => {
+  currentSearch = e.target.value;
+  fetchLeaderboard(currentSearch);
+});
+
+// Initial load
+fetchLeaderboard();
+</script>
+</body>
+</html>
