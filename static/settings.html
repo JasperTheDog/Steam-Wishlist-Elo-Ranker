@@ -1,6 +1,7 @@
 <!doctype html>
 <html>
 <head>
+<link rel="stylesheet" href="/theme.css">
 <meta charset="utf-8" />
 <title>Wishlist Elo — Settings</title>
 <style>
@@ -128,10 +129,14 @@
 </style>
 </head>
 <body>
-  <header>
-    <h2>Settings</h2>
-    <a href="/index.html" class="button">Quick Duel</a>
-  </header>
+<header>
+  <h2>Settings</h2>
+  <div style="display: flex; gap: 12px;">
+    <a href="/index.html" class="button button-duel">Quick Duel</a>
+    <a href="/leaderboard.html" class="button button-leaderboard">Leaderboard</a>
+    <a href="/history.html" class="button button-history">History</a>
+  </div>
+</header>
 
   <div class="container">
     <div class="section">
@@ -163,6 +168,16 @@
             </div>
             <label class="switch">
                 <input type="checkbox" id="prefer-far-elo">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="setting-item">
+            <div>
+                <div class="label">Prefer Lower Played</div>
+                <div class="desc">Prioritize pairing games that have been played less.</div>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="prefer-lower-played">
                 <span class="slider"></span>
             </label>
         </div>
@@ -199,6 +214,7 @@ let settings = {};
 const winnerStaysOn = document.getElementById('winner-stays-on');
 const preferCloseElo = document.getElementById('prefer-close-elo');
 const preferFarElo = document.getElementById('prefer-far-elo');
+const preferLowerPlayed = document.getElementById('prefer-lower-played');
 
 async function loadSettings() {
   const res = await fetch('/settings');
@@ -207,6 +223,7 @@ async function loadSettings() {
       winnerStaysOn.checked = settings.winner_stays_on || false;
       preferCloseElo.checked = settings.prefer_close_rating || false;
       preferFarElo.checked = settings.prefer_far_rating || false;
+      preferLowerPlayed.checked = settings.prefer_lower_played || false;
   }
 }
 
@@ -215,6 +232,7 @@ async function saveSettings() {
         winner_stays_on: winnerStaysOn.checked,
         prefer_close_rating: preferCloseElo.checked,
         prefer_far_rating: preferFarElo.checked,
+        prefer_lower_played: preferLowerPlayed.checked,
     };
     await fetch('/settings', {
         method: 'POST',
@@ -223,21 +241,22 @@ async function saveSettings() {
     });
 }
 
-// Ensure close and far are mutually exclusive
+// Ensure only one "prefer" is active at a time
 preferCloseElo.addEventListener('change', () => {
     if (preferCloseElo.checked) {
         preferFarElo.checked = false;
     }
     saveSettings();
 });
-
 preferFarElo.addEventListener('change', () => {
     if (preferFarElo.checked) {
         preferCloseElo.checked = false;
     }
     saveSettings();
 });
-
+preferLowerPlayed.addEventListener('change', () => {
+    saveSettings();
+});
 winnerStaysOn.addEventListener('change', saveSettings);
 
 // Danger Zone Logic
