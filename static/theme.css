@@ -1,0 +1,75 @@
+/* History buttons: Red */
+.button-history {
+  background: #dc3545 !important;
+  color: #fff !important;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 500;
+  min-width: 80px;
+  font-size: 15px;
+  text-align: center;
+  display: inline-block;
+  transition: background 0.2s;
+}
+.button-history:hover {
+  background: #a71d2a !important;
+}
+
+/* Settings buttons: Grey */
+.button-settings {
+  background: #6c757d !important;
+  color: #fff !important;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 500;
+  min-width: 80px;
+  font-size: 15px;
+  text-align: center;
+  display: inline-block;
+  transition: background 0.2s;
+}
+.button-settings:hover {
+  background: #495057 !important;
+}
+
+/* Leaderboard buttons: Blue */
+.button-leaderboard {
+  background: #007bff !important;
+  color: #fff !important;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 500;
+  min-width: 80px;
+  font-size: 15px;
+  text-align: center;
+  display: inline-block;
+  transition: background 0.2s;
+}
+.button-leaderboard:hover {
+  background: #0056b3 !important;
+}
+
+/* Duel/Compare buttons: Green */
+.button-duel {
+  background: #28a745 !important;
+  color: #fff !important;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 500;
+  min-width: 80px;
+  font-size: 15px;
+  text-align: center;
+  display: inline-block;
+  transition: background 0.2s;
+}
+.button-duel:hover {
+  background: #218838 !important;
+}

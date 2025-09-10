@@ -1,8 +1,9 @@
 <!doctype html>
 <html>
 <head>
+<link rel="stylesheet" href="/theme.css">
 <meta charset="utf-8" />
-<title>Wishlist Elo — Game</title>
+<title>Wishlist Elo Game</title>
 <style>
 body {
   font-family: system-ui, sans-serif;
@@ -107,6 +108,21 @@ header a.button:hover { background:#0056b3; }
   background:#f7f7f7;
 }
 
+.battle-card.pass {
+  background:#fff8dc;
+  border-left:4px solid #ffc107;
+}
+
+.pass-badge {
+  background:#ffc107;
+  color:#856404;
+  font-size:10px;
+  font-weight:600;
+  padding:2px 6px;
+  border-radius:3px;
+  margin-left:6px;
+}
+
 .settings-zone button {
   padding:8px 14px;
   border:none;
@@ -134,10 +150,11 @@ header a.button:hover { background:#0056b3; }
 
 <header>
   <h2>Game Details</h2>
-  <div>
-    <a href="/index.html" class="button">Quick Duel</a>
-    <a href="/leaderboard.html" class="button">Leaderboard</a>
-    <a href="/history.html" class="button">History</a>
+  <div style="display:flex; gap:10px;">
+    <a href="/index.html" class="button button-duel">Quick Duel</a>
+    <a href="/leaderboard.html" class="button button-leaderboard">Leaderboard</a>
+    <a href="/history.html" class="button button-history">History</a>
+    <a href="/settings.html" class="button button-settings">Settings</a>
   </div>
 </header>
 
@@ -183,7 +200,10 @@ header a.button:hover { background:#0056b3; }
 
   <div class="section">
     <h3>Match History</h3>
-    <div class="history-list" id="history-list">Loading…</div>
+    <div style="margin-bottom: 12px; font-size: 12px; color: #666;">
+      <span class="pass-badge">PASS</span> indicates the result was determined by ELO comparison when no preference was given
+    </div>
+    <div class="history-list" id="history-list">Loading¦</div>
   </div>
 
   <div class="section settings-zone">
@@ -242,7 +262,6 @@ if (leaderboardRes.ok) {
     }
 }
 
-
   // fetch game history
   const hres = await fetch(`/game_history/${appid}`);
   if(hres.ok) {
@@ -254,25 +273,39 @@ if (leaderboardRes.ok) {
     } else {
       historyData.history.forEach(h => {
         const row = document.createElement('div');
-        row.className = 'battle-card';
-
+        
+        const isPass = h.pass === true;
         const isWin = h.winner === appid;
         const opponentTitle = isWin ? h.loser_title : h.winner_title;
         const opponentAppId = isWin ? h.loser : h.winner;
         const opponentImage = isWin ? h.loser_image : h.winner_image;
         
-        const outcomeText = isWin ? 'Victory against' : 'Defeat against';
-        const outcomeColor = isWin ? 'green' : 'red';
+        // Determine outcome text and color
+        let outcomeText, outcomeColor;
+        if (isPass) {
+          outcomeColor = '#856404'; // amber/yellow color for passes
+          outcomeText = isWin ? 'Pass Win' : 'Pass Loss';
+        } else {
+          outcomeColor = isWin ? 'green' : 'red';
+          outcomeText = isWin ? 'Victory' : 'Defeat';
+        }
         
         const ratingChange = isWin ? (h.r_w_after - h.r_w_before) : (h.r_l_after - h.r_l_before);
         const sign = ratingChange >= 0 ? '+' : '';
+
+        // Add pass styling to the card if it was a pass
+        row.className = isPass ? 'battle-card pass' : 'battle-card';
 
         row.innerHTML = `
           <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
             <img src="${opponentImage}" alt="${opponentTitle}" style="width: 96px; height: 45px; object-fit: cover; border-radius: 4px; flex-shrink: 0;" />
             <div>
-              <div style="font-size: 12px; color: ${outcomeColor}; font-weight: bold; text-transform: uppercase;">${isWin ? 'Victory' : 'Defeat'}</div>
+              <div style="font-size: 12px; color: ${outcomeColor}; font-weight: bold; text-transform: uppercase; display: flex; align-items: center;">
+                ${outcomeText}
+                ${isPass ? '<span class="pass-badge">PASS</span>' : ''}
+              </div>
               <a href="/game/${opponentAppId}" style="text-decoration:none; color:inherit;">vs ${opponentTitle}</a>
+              ${isPass ? '<div style="font-size: 11px; color: #856404; margin-top: 2px;">Auto-determined by ELO comparison</div>' : ''}
             </div>
           </div>
           <div style="text-align:right; font-size: 16px;">
