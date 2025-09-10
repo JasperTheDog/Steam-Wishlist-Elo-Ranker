@@ -1,6 +1,7 @@
 <!doctype html>
 <html>
 <head>
+<link rel="stylesheet" href="/theme.css">
 <meta charset="utf-8" />
 <title>Wishlist Elo — History</title>
 <style>
@@ -100,12 +101,17 @@ header a.button:hover { background:#0056b3; }
 
 <header>
   <h2>Battle History</h2>
-  <div>
-    <a href="/index.html" class="button">Quick Duel</a>
-    <a href="/leaderboard.html" class="button">Leaderboard</a>
-    <a href="/settings.html" class="button">Settings</a>
+  <div style="display:flex; gap:10px;">
+    <a href="/index.html" class="button button-duel">Quick Duel</a>
+    <a href="/leaderboard.html" class="button button-leaderboard">Leaderboard</a>
+    <a href="/settings.html" class="button button-settings">Settings</a>
   </div>
 </header>
+
+<div style="margin: 12px 0 0 0; font-size:13px; color:#856404;">
+  <span style="background:#ffe066; color:#856404; font-size:12px; font-weight:600; padding:2px 8px; border-radius:4px;">PASS</span>
+  = This result was from a pass (no strong preference)
+</div>
 
 <div class="history-container" id="history-container">
   Loading…
@@ -135,6 +141,12 @@ async function loadHistory() {
     const winnerDelta = Math.round(h.r_w_after - h.r_w_before);
     const loserDelta = Math.round(h.r_l_after - h.r_l_before);
 
+    const isPass = h.pass === true;
+    const passBadge = isPass ? `<span style="background:#ffe066; color:#856404; font-size:12px; font-weight:600; padding:2px 8px; border-radius:4px; margin-left:8px;">PASS</span>` : "";
+    const separator = isPass
+      ? `<div class="separator" style="color:#856404;">⇄</div>`
+      : `<div class="separator">←</div>`;
+
     const card = document.createElement('div');
     card.className = 'battle-card';
     card.innerHTML = `
@@ -142,17 +154,17 @@ async function loadHistory() {
         <a href="/game/${h.winner}" style="display:flex; align-items:center; gap:12px; text-decoration:none; color:inherit;">
         <img src="${h.winner_image}" alt="${h.winner_title}" />
         <div class="player-info">
-            <div>${h.winner_title}</div>
+            <div>${h.winner_title} ${passBadge}</div>
             <div class="elo-delta green">${eloSymbol(h.k, winnerDelta)}${winnerDelta}</div>
             <div class="elo-oldnew">${Math.round(h.r_w_before)} → ${Math.round(h.r_w_after)}</div>
         </div>
         </a>
     </div>
-    <div class="separator">←</div>
+    ${separator}
     <div class="player loser">
         <a href="/game/${h.loser}" style="display:flex; align-items:center; gap:12px; text-decoration:none; color:inherit;">
         <div class="player-info" style="text-align:right;">
-            <div>${h.loser_title}</div>
+            <div>${passBadge} ${h.loser_title}</div>
             <div class="elo-delta red">${eloSymbol(h.k, loserDelta)}${Math.abs(loserDelta)}</div>
             <div class="elo-oldnew">${Math.round(h.r_l_before)} → ${Math.round(h.r_l_after)}</div>
         </div>
