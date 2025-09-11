@@ -1,0 +1,491 @@
+<!doctype html>
+<html>
+<head>
+<link rel="stylesheet" href="/theme.css">
+<meta charset="utf-8" />
+<title>Wishlist Elo Genre</title>
+<style>
+body {
+  font-family: system-ui, sans-serif;
+  margin:0;
+  padding:0;
+  background:#f9f9f9;
+}
+
+header {
+  display:flex;
+  justify-content: space-between;
+  align-items:center;
+  padding:16px 32px;
+  background:#fff;
+  box-shadow:0 1px 4px rgba(0,0,0,0.08);
+  position: sticky;
+  top:0;
+  z-index:100;
+}
+header h2 { margin:0; font-size:22px; font-weight:600; }
+header a.button {
+  padding:8px 18px;
+  background:#007bff;
+  color:white;
+  border-radius:6px;
+  text-decoration:none;
+  font-weight:500;
+  margin-left:8px;
+  transition: background 0.2s;
+}
+header a.button:hover { background:#0056b3; }
+
+.main-container {
+  max-width:900px;
+  margin:24px auto;
+  padding:0 16px;
+  display:flex;
+  flex-direction:column;
+  gap:24px;
+}
+
+.genre-header {
+  display:flex;
+  gap:20px;
+  align-items:center;
+  background:#fff;
+  border-radius:8px;
+  padding:16px;
+  box-shadow:0 1px 6px rgba(0,0,0,0.08);
+}
+.genre-header .title {
+  font-size:22px;
+  font-weight:600;
+}
+
+.section {
+  background:#fff;
+  border-radius:8px;
+  padding:16px;
+  box-shadow:0 1px 6px rgba(0,0,0,0.08);
+}
+.section h3 {
+  margin-top:0;
+  margin-bottom:12px;
+  font-size:18px;
+}
+
+.stats-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:12px;
+}
+.stat {
+  text-align:center;
+}
+.stat .value {
+  font-size:20px;
+  font-weight:600;
+}
+.stat .label {
+  font-size:12px;
+  color:#555;
+}
+
+.leaderboard-list {
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+.game-card {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px;
+  border-radius:6px;
+  background:#f7f7f7;
+  position: relative;
+}
+
+.game-card img {
+  width:64px;
+  height:36px;
+  object-fit:cover;
+  border-radius:4px;
+}
+
+.remove-game-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.remove-game-btn:hover {
+  background: #a71d2a;
+}
+
+.add-game-section {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.add-game-section input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.add-game-section button {
+  padding: 8px 16px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.add-game-section button:hover {
+  background: #218838;
+}
+
+.search-results {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.search-result {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-result:hover {
+  background: #f8f9fa;
+}
+
+.search-result img {
+  width: 32px;
+  height: 18px;
+  object-fit: cover;
+  border-radius: 3px;
+}
+
+.search-container {
+  position: relative;
+  flex: 1;
+}
+
+.settings-zone button {
+  padding:8px 14px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  font-weight:500;
+  margin-right: 8px;
+}
+.settings-zone .danger {
+  background:#dc3545;
+  color:white;
+}
+.settings-zone .danger:hover {
+  background:#a71d2a;
+}
+.settings-zone .action {
+  background:#28a745;
+  color:white;
+}
+.settings-zone .action:hover {
+  background:#218838;
+}
+.settings-zone .primary {
+  background:#007bff;
+  color:white;
+}
+.settings-zone .primary:hover {
+  background:#0056b3;
+}
+
+.game-image-link {
+  display: inline-block;
+  text-decoration: none;
+}
+.game-image-link:hover img {
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h2 id="genre-title">Genre Details</h2>
+  <div style="display:flex; gap:10px;">
+    <a href="/index.html" class="button button-duel">Quick Duel</a>
+    <a href="/leaderboard.html" class="button button-leaderboard">Leaderboard</a>
+    <a href="/history.html" class="button button-history">History</a>
+    <a href="/settings.html" class="button button-settings">Settings</a>
+  </div>
+</header>
+
+<div class="main-container">
+  <div class="genre-header" id="genre-header">
+    <div>
+      <div class="title" id="genre-name">Loading...</div>
+      <div id="genre-stats">Games: —</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Stats</h3>
+    <div class="stats-grid">
+      <div class="stat">
+        <div class="value" id="stat-total-games">—</div>
+        <div class="label">Total Games</div>
+      </div>
+      <div class="stat">
+        <div class="value" id="stat-avg-rating">—</div>
+        <div class="label">Avg Rating</div>
+      </div>
+      <div class="stat">
+        <div class="value" id="stat-total-played">—</div>
+        <div class="label">Total Played</div>
+      </div>
+      <div class="stat">
+        <div class="value" id="stat-total-wins">—</div>
+        <div class="label">Total Wins</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Add Games to Genre</h3>
+    <div class="add-game-section">
+      <div class="search-container">
+        <input id="game-search" type="text" placeholder="Search games to add..." />
+        <div id="search-results" class="search-results" style="display: none;"></div>
+      </div>
+      <button onclick="addSelectedGame()">Add Game</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Genre Leaderboard</h3>
+    <div class="leaderboard-list" id="leaderboard-list">Loading...</div>
+  </div>
+
+  <div class="section settings-zone">
+      <h3>Actions</h3>
+      <button class="primary" onclick="playGenreGames()">Play Games in this Genre</button>
+      <button class="danger" onclick="deleteGenre()">Delete Genre</button>
+  </div>
+</div>
+
+<script>
+let currentGenreId = null;
+let selectedGame = null;
+
+function getGenreIdFromUrl() {
+  const parts = window.location.pathname.split('/');
+  return parts[parts.length-1];
+}
+
+async function loadGenre() {
+  currentGenreId = getGenreIdFromUrl();
+
+  // fetch genre info
+  const res = await fetch(`/genres/${currentGenreId}`);
+  if(!res.ok) { 
+    document.getElementById('genre-name').innerText = 'Failed to load';
+    return;
+  }
+  const genre = await res.json();
+
+  document.getElementById('genre-name').innerText = genre.name;
+  document.getElementById('genre-stats').innerText = `Games: ${genre.games.length}`;
+
+  // fetch genre leaderboard
+  const leaderboardRes = await fetch(`/genres/${currentGenreId}/leaderboard`);
+  if(leaderboardRes.ok) {
+    const leaderboardData = await leaderboardRes.json();
+    updateStats(leaderboardData.games);
+    updateLeaderboard(leaderboardData.games);
+  }
+}
+
+function updateStats(games) {
+  const totalGames = games.length;
+  const avgRating = totalGames > 0 ? Math.round(games.reduce((sum, g) => sum + g.rating, 0) / totalGames) : 0;
+  const totalPlayed = games.reduce((sum, g) => sum + (g.played || 0), 0);
+  const totalWins = games.reduce((sum, g) => sum + (g.wins || 0), 0);
+
+  document.getElementById('stat-total-games').innerText = totalGames;
+  document.getElementById('stat-avg-rating').innerText = avgRating;
+  document.getElementById('stat-total-played').innerText = totalPlayed;
+  document.getElementById('stat-total-wins').innerText = totalWins;
+}
+
+function updateLeaderboard(games) {
+  const list = document.getElementById('leaderboard-list');
+  list.innerHTML = '';
+  
+  if (games.length === 0) {
+    list.innerHTML = '<div>No games in this genre yet</div>';
+    return;
+  }
+
+  games.forEach((game, index) => {
+    const card = document.createElement('div');
+    card.className = 'game-card';
+    card.innerHTML = `
+      <div style="display: flex; align-items: center; gap: 12px; flex: 1;">
+        <a href="/game/${game.appid}" class="game-image-link">
+          <img src="${game.image_path ? `/game_image/${encodeURIComponent(game.appid)}` : (game.image_url || '')}" alt="${game.title}" />
+        </a>
+        <div>
+          <div style="font-size: 14px; font-weight: 600;">#${index + 1} ${game.title}</div>
+          <div style="font-size: 12px; color: #666;">Rating: ${Math.round(game.rating)} | Played: ${game.played} | Win%: ${game.winrate_percent}%</div>
+        </div>
+      </div>
+      <button class="remove-game-btn" onclick="removeGameFromGenre('${game.appid}')" title="Remove from genre">×</button>
+    `;
+    list.appendChild(card);
+  });
+}
+
+async function searchGames() {
+  const query = document.getElementById('game-search').value.trim();
+  if (query.length < 2) {
+    document.getElementById('search-results').style.display = 'none';
+    return;
+  }
+
+  const res = await fetch(`/search?q=${encodeURIComponent(query)}`);
+  if (!res.ok) return;
+
+  const data = await res.json();
+  const results = data.results.slice(0, 10); // Limit to 10 results
+  
+  const searchResults = document.getElementById('search-results');
+  searchResults.innerHTML = '';
+  
+  if (results.length === 0) {
+    searchResults.innerHTML = '<div style="padding: 8px 12px; color: #666;">No games found</div>';
+  } else {
+    results.forEach(game => {
+      const result = document.createElement('div');
+      result.className = 'search-result';
+      result.onclick = () => selectGame(game);
+      result.innerHTML = `
+        <img src="${game.image_path ? `/game_image/${encodeURIComponent(game.appid)}` : (game.image_url || '')}" alt="${game.title}" />
+        <span>${game.title}</span>
+      `;
+      searchResults.appendChild(result);
+    });
+  }
+  
+  searchResults.style.display = 'block';
+}
+
+function selectGame(game) {
+  selectedGame = game;
+  document.getElementById('game-search').value = game.title;
+  document.getElementById('search-results').style.display = 'none';
+}
+
+async function addSelectedGame() {
+  if (!selectedGame) {
+    alert('Please select a game first');
+    return;
+  }
+
+  const res = await fetch(`/genres/${currentGenreId}/games`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({appid: selectedGame.appid})
+  });
+
+  if (!res.ok) {
+    const error = await res.json();
+    alert(error.detail || 'Failed to add game');
+    return;
+  }
+
+  selectedGame = null;
+  document.getElementById('game-search').value = '';
+  loadGenre(); // Reload to update the display
+}
+
+async function removeGameFromGenre(appid) {
+  if (!confirm('Remove this game from the genre?')) return;
+
+  const res = await fetch(`/genres/${currentGenreId}/games/${appid}`, {
+    method: 'DELETE'
+  });
+
+  if (!res.ok) {
+    alert('Failed to remove game');
+    return;
+  }
+
+  loadGenre(); // Reload to update the display
+}
+
+function playGenreGames() {
+  window.location.href = `/index.html?genre=${currentGenreId}`;
+}
+
+async function deleteGenre() {
+  if (!confirm('Are you sure you want to delete this genre? This action cannot be undone.')) return;
+  
+  const res = await fetch(`/genres/${currentGenreId}`, {
+    method: 'DELETE'
+  });
+  
+  if (!res.ok) {
+    alert('Failed to delete genre');
+    return;
+  }
+  
+  alert('Genre deleted');
+  window.location.href = '/leaderboard.html';
+}
+
+// Event listeners
+document.getElementById('game-search').addEventListener('input', searchGames);
+document.getElementById('game-search').addEventListener('blur', () => {
+  // Hide results after a short delay to allow clicking
+  setTimeout(() => {
+    document.getElementById('search-results').style.display = 'none';
+  }, 200);
+});
+
+// Initial load
+loadGenre();
+</script>
+
+</body>
+</html>

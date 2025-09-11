@@ -32,6 +32,7 @@
   <div style="display:flex; gap:10px;">
     <a href="/leaderboard.html" class="button button-leaderboard">Leaderboard</a>
     <a href="/history.html" class="button button-history">History</a>
+    <a href="/genres.html" class="button button-genres">Genres</a>
     <a href="/settings.html" class="button button-settings">Settings</a>
   </div>
 </header>
@@ -39,6 +40,11 @@
 <div id="challenger-mode-status" style="display: none; margin: 0 0 16px 0; padding: 8px 16px; background: #e2f0d9; border: 1px solid #b7d0a8; border-radius: 6px; text-align: center;">
   Now dueling with <strong id="challenger-name"></strong>.
   <button id="exit-challenger-mode" style="margin-left:8px; font-size:12px; padding: 4px 8px;">Exit Mode</button>
+</div>
+
+<div id="genre-mode-status" style="display: none; margin: 0 0 16px 0; padding: 8px 16px; background: #e2f0d9; border: 1px solid #b7d0a8; border-radius: 6px; text-align: center;">
+  Now dueling with games in <strong id="genre-name"></strong> genre.
+  <button id="exit-genre-mode" style="margin-left:8px; font-size:12px; padding: 4px 8px;">Exit Mode</button>
 </div>
 
 
@@ -77,6 +83,7 @@
 let currentPair = null;
 let settings = {};
 let persistentChallenger = null;
+let persistentGenre = null;
 let lastWinnerId = null;
 
 async function fetchStats() {
@@ -104,6 +111,7 @@ async function fetchPair() {
   // Construct query parameters
   const params = new URLSearchParams();
   if (challengerId) params.append('challenger', challengerId);
+  if (persistentGenre) params.append('genre', persistentGenre);
   if (settings.prefer_close_rating) params.append('prefer_close_rating', 'true');
   // Only one of these should be true at a time
   if (!settings.prefer_close_rating && settings.prefer_far_rating) params.append('prefer_far_rating', 'true');
@@ -174,11 +182,27 @@ async function initializePage() {
     const urlParams = new URLSearchParams(window.location.search);
     const challengerId = urlParams.get('play_with');
     const challengerTitle = urlParams.get('title');
+    const genreId = urlParams.get('genre');
 
     if (challengerId && challengerTitle) {
         persistentChallenger = challengerId;
         document.getElementById('challenger-name').innerText = challengerTitle;
         document.getElementById('challenger-mode-status').style.display = 'block';
+    }
+    
+    if (genreId) {
+        persistentGenre = genreId;
+        // Fetch genre name
+        try {
+            const genreRes = await fetch(`/genres/${genreId}`);
+            if (genreRes.ok) {
+                const genre = await genreRes.json();
+                document.getElementById('genre-name').innerText = genre.name;
+                document.getElementById('genre-mode-status').style.display = 'block';
+            }
+        } catch (e) {
+            console.error('Failed to load genre info:', e);
+        }
     }
     
     fetchPair();
@@ -191,6 +215,9 @@ document.getElementById('left-strong-btn').addEventListener('click', () => { if(
 document.getElementById('right-strong-btn').addEventListener('click', () => { if(currentPair) vote(currentPair.b.appid, currentPair.a.appid, 96); });
 document.getElementById('pass-btn').addEventListener('click', () => { if (currentPair) passVote(); });
 document.getElementById('exit-challenger-mode').addEventListener('click', () => {
+    window.location.href = '/index.html';
+});
+document.getElementById('exit-genre-mode').addEventListener('click', () => {
     window.location.href = '/index.html';
 });
 

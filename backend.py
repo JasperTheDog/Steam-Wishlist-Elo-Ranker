@@ -19,6 +19,7 @@ CACHE_DIR = DATA_DIR / "cache"
 WISHLIST_FILE = DATA_DIR / "wishlist.json"
 HISTORY_FILE = DATA_DIR / "history.json"
 STATS_FILE = DATA_DIR / "stats.json"
+GENRES_FILE = DATA_DIR / "genres.json"
 TEMP_DIR = DATA_DIR / "temp"
 TEMP_DIR.mkdir(exist_ok=True)
 VERSION_FILE = DATA_DIR / "version.json"
@@ -57,6 +58,12 @@ class PairResponse(BaseModel):
 class VotePayload(BaseModel):
     winner_appid: str
     loser_appid: str
+
+class GenrePayload(BaseModel):
+    name: str
+
+class AddGameToGenrePayload(BaseModel):
+    appid: str
 
 # -----------------------
 # Utility: load/save
@@ -98,6 +105,14 @@ def load_settings() -> Dict:
 
 def save_settings(d: Dict):
     SETTINGS_FILE.write_text(json.dumps(d, indent=2))
+
+def load_genres() -> Dict[str, Dict]:
+    if GENRES_FILE.exists():
+        return json.loads(GENRES_FILE.read_text())
+    return {}
+
+def save_genres(d: Dict[str, Dict]):
+    GENRES_FILE.write_text(json.dumps(d, indent=2))
 
 @app.get("/stats")
 def stats():
@@ -273,9 +288,18 @@ async def pair(
     prefer_new_choices: bool = False,
     choices_history_length: int = 30,
     challenger: Optional[str] = None,
+    genre: Optional[str] = None,
 ):
     data = load_wishlist()
     games = list(data.values())
+    
+    # Filter by genre if specified
+    if genre:
+        genres = load_genres()
+        if genre not in genres:
+            raise HTTPException(404, "Genre not found")
+        genre_games = genres[genre].get("games", [])
+        games = [g for g in games if g["appid"] in genre_games]
     
     if len(games) < 2:
         raise HTTPException(400, "Need at least 2 games in wishlist")
@@ -578,12 +602,115 @@ def save_snapshot():
     return {"message": f"Snapshot saved as version {version}."}
 
 # -----------------------
+# Genre management endpoints
+# -----------------------
+@app.get("/genres")
+def get_genres():
+    """Get all genres"""
+    return load_genres()
+
+@app.post("/genres")
+def create_genre(payload: GenrePayload):
+    """Create a new genre"""
+    genres = load_genres()
+    genre_id = payload.name.lower().replace(" ", "_")
+    
+    if genre_id in genres:
+        raise HTTPException(400, "Genre already exists")
+    
+    genres[genre_id] = {
+        "id": genre_id,
+        "name": payload.name,
+        "games": []
+    }
+    save_genres(genres)
+    return {"status": "ok", "genre": genres[genre_id]}
+
+@app.delete("/genres/{genre_id}")
+def delete_genre(genre_id: str):
+    """Delete a genre"""
+    genres = load_genres()
+    if genre_id not in genres:
+        raise HTTPException(404, "Genre not found")
+    
+    del genres[genre_id]
+    save_genres(genres)
+    return {"status": "ok", "message": f"Genre {genre_id} deleted"}
+
+@app.get("/genres/{genre_id}")
+def get_genre(genre_id: str):
+    """Get a specific genre"""
+    genres = load_genres()
+    if genre_id not in genres:
+        raise HTTPException(404, "Genre not found")
+    return genres[genre_id]
+
+@app.get("/genres/{genre_id}/leaderboard")
+def get_genre_leaderboard(genre_id: str, q: str = "", limit: int = 200):
+    """Get leaderboard for games in a specific genre"""
+    genres = load_genres()
+    if genre_id not in genres:
+        raise HTTPException(404, "Genre not found")
+    
+    genre_games = genres[genre_id].get("games", [])
+    wishlist = load_wishlist()
+    games = [wishlist[appid] for appid in genre_games if appid in wishlist]
+    games = sorted(games, key=lambda g: g["rating"], reverse=True)
+    
+    if q:
+        games = [g for g in games if q.lower() in g["title"].lower()]
+    
+    # Add win rate
+    for g in games:
+        played = g.get("played", 0)
+        wins = g.get("wins", 0)
+        g["winrate_percent"] = round((wins / played) * 100, 1) if played else 0.0
+    
+    return {"count": len(games), "games": games[:limit]}
+
+@app.post("/genres/{genre_id}/games")
+def add_game_to_genre(genre_id: str, payload: AddGameToGenrePayload):
+    """Add a game to a genre"""
+    genres = load_genres()
+    if genre_id not in genres:
+        raise HTTPException(404, "Genre not found")
+    
+    wishlist = load_wishlist()
+    if payload.appid not in wishlist:
+        raise HTTPException(404, "Game not found in wishlist")
+    
+    if payload.appid not in genres[genre_id]["games"]:
+        genres[genre_id]["games"].append(payload.appid)
+        save_genres(genres)
+    
+    return {"status": "ok", "message": f"Game added to genre {genre_id}"}
+
+@app.delete("/genres/{genre_id}/games/{appid}")
+def remove_game_from_genre(genre_id: str, appid: str):
+    """Remove a game from a genre"""
+    genres = load_genres()
+    if genre_id not in genres:
+        raise HTTPException(404, "Genre not found")
+    
+    if appid in genres[genre_id]["games"]:
+        genres[genre_id]["games"].remove(appid)
+        save_genres(genres)
+        return {"status": "ok", "message": f"Game removed from genre {genre_id}"}
+    else:
+        raise HTTPException(404, "Game not found in genre")
+
+# -----------------------
 # Frontend serving
 # -----------------------
 @app.get("/game/{appid}", response_class=HTMLResponse)
 def game_page(appid: str):
     game_html = (APP_DIR / "static" / "game.html").read_text()
     return HTMLResponse(content=game_html)
+
+@app.get("/genre/{genre_id}", response_class=HTMLResponse)
+def genre_page(genre_id: str):
+    genre_html = (APP_DIR / "static" / "genre.html").read_text()
+    return HTMLResponse(content=genre_html)
 
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
