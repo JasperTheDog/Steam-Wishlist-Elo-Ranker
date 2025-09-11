@@ -3,7 +3,7 @@
 <head>
 <link rel="stylesheet" href="/theme.css">
 <meta charset="utf-8" />
-<title>Wishlist Elo — Settings</title>
+<title>Wishlist Elo â€" Settings</title>
 <style>
   body {
     font-family: system-ui, sans-serif;
@@ -71,6 +71,21 @@
     color: #555;
     margin-top: 4px;
   }
+  .setting-item.slider-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .slider-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
   /* Toggle Switch CSS */
   .switch { position: relative; display: inline-block; width: 50px; height: 28px; }
   .switch input { opacity: 0; width: 0; height: 0; }
@@ -78,6 +93,66 @@
   .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
   input:checked + .slider { background-color: #28a745; }
   input:checked + .slider:before { transform: translateX(22px); }
+  
+  /* Range Slider CSS */
+  .range-slider {
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: #e9ecef;
+    outline: none;
+    appearance: none;
+    cursor: pointer;
+  }
+  .range-slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #007bff;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transition: all 0.15s ease-in-out;
+  }
+  .range-slider::-webkit-slider-thumb:hover {
+    background: #0056b3;
+    transform: scale(1.1);
+  }
+  .range-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #007bff;
+    cursor: pointer;
+    border: 2px solid #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+  .range-slider::-moz-range-track {
+    height: 6px;
+    border-radius: 3px;
+    background: #e9ecef;
+  }
+  .slider-value {
+    display: inline-block;
+    min-width: 60px;
+    padding: 4px 12px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    text-align: center;
+    font-weight: 600;
+    font-size: 14px;
+    color: #495057;
+  }
+  .slider-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: #6c757d;
+    margin-top: 4px;
+  }
   .backup-section {
     background: #fff;
     border: 1.5px solid #28a745;
@@ -125,6 +200,11 @@
     .backup-section {
       padding: 12px 8px;
     }
+    .slider-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+    }
   }
 </style>
 </head>
@@ -150,6 +230,32 @@
                 <input type="checkbox" id="winner-stays-on">
                 <span class="slider"></span>
             </label>
+        </div>
+        <div class="setting-item">
+            <div>
+                <div class="label">Prefer New Choices</div>
+                <div class="desc">Heavily discourage choosing a game shown in recent matches. Set value below.</div>
+            </div>
+            <label class="switch">
+                <input type="checkbox" id="prefer-new-choices">
+                <span class="slider"></span>
+            </label>
+        </div>
+        <div class="setting-item slider-item">
+            <div class="slider-header">
+                <div>
+                    <div class="label">New Choices History Length</div>
+                    <div class="desc">Number of recent matches to avoid when "Prefer New Choices" is enabled.</div>
+                </div>
+                <div class="slider-value" id="history-length-value">30</div>
+            </div>
+            <div class="slider-controls">
+                <input type="range" id="history-length-slider" class="range-slider" min="0" max="100" value="30">
+                <div class="slider-info">
+                    <span>0 (disabled)</span>
+                    <span id="max-games-text">100 (all games)</span>
+                </div>
+            </div>
         </div>
         <div class="setting-item">
             <div>
@@ -211,28 +317,61 @@
 
 <script>
 let settings = {};
+let totalGames = 0;
 const winnerStaysOn = document.getElementById('winner-stays-on');
 const preferCloseElo = document.getElementById('prefer-close-elo');
 const preferFarElo = document.getElementById('prefer-far-elo');
 const preferLowerPlayed = document.getElementById('prefer-lower-played');
+const preferNewChoices = document.getElementById('prefer-new-choices');
+const historyLengthSlider = document.getElementById('history-length-slider');
+const historyLengthValue = document.getElementById('history-length-value');
+const maxGamesText = document.getElementById('max-games-text');
+
+async function loadTotalGames() {
+  try {
+    const res = await fetch('/num_games');
+    if (res.ok) {
+      const data = await res.json();
+      totalGames = data.num_games;
+      historyLengthSlider.max = totalGames;
+      maxGamesText.textContent = `${totalGames} (all games)`;
+      
+      // Update slider value if current setting exceeds total games
+      if (parseInt(historyLengthSlider.value) > totalGames) {
+        historyLengthSlider.value = totalGames;
+        historyLengthValue.textContent = totalGames;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load total games:', error);
+  }
+}
 
 async function loadSettings() {
   const res = await fetch('/settings');
   if (res.ok) {
       settings = await res.json();
       winnerStaysOn.checked = settings.winner_stays_on || false;
+      preferNewChoices.checked = settings.prefer_new_choices || false;
       preferCloseElo.checked = settings.prefer_close_rating || false;
       preferFarElo.checked = settings.prefer_far_rating || false;
       preferLowerPlayed.checked = settings.prefer_lower_played || false;
+      
+      // Load history length setting
+      const historyLength = settings.new_choices_history_length || 30;
+      historyLengthSlider.value = historyLength;
+      historyLengthValue.textContent = historyLength;
   }
 }
 
 async function saveSettings() {
     const newSettings = {
         winner_stays_on: winnerStaysOn.checked,
+        prefer_new_choices: preferNewChoices.checked,
         prefer_close_rating: preferCloseElo.checked,
         prefer_far_rating: preferFarElo.checked,
         prefer_lower_played: preferLowerPlayed.checked,
+        new_choices_history_length: parseInt(historyLengthSlider.value),
     };
     await fetch('/settings', {
         method: 'POST',
@@ -240,6 +379,16 @@ async function saveSettings() {
         body: JSON.stringify(newSettings)
     });
 }
+
+// History length slider event handlers
+historyLengthSlider.addEventListener('input', () => {
+    const value = parseInt(historyLengthSlider.value);
+    historyLengthValue.textContent = value;
+});
+
+historyLengthSlider.addEventListener('change', () => {
+    saveSettings();
+});
 
 // Ensure only one "prefer" is active at a time
 preferCloseElo.addEventListener('change', () => {
@@ -258,6 +407,7 @@ preferLowerPlayed.addEventListener('change', () => {
     saveSettings();
 });
 winnerStaysOn.addEventListener('change', saveSettings);
+preferNewChoices.addEventListener('change', saveSettings);
 
 // Danger Zone Logic
 document.getElementById("reset-btn").addEventListener("click", async () => {
@@ -265,6 +415,7 @@ document.getElementById("reset-btn").addEventListener("click", async () => {
     const res = await fetch('/reset_ratings', {method:'POST'});
     if(!res.ok){ alert('Reset failed'); return; }
     alert((await res.json()).message);
+    loadTotalGames(); // Reload total games after reset
 });
 
 async function loadBackups() {
@@ -296,6 +447,7 @@ document.getElementById('restore-btn').addEventListener('click', async () => {
   const data = await res.json();
   alert(data.message);
   loadBackups();
+  loadTotalGames(); // Reload total games after restore
 });
 
 document.getElementById('snapshot-btn').addEventListener('click', async () => {
@@ -307,6 +459,7 @@ document.getElementById('snapshot-btn').addEventListener('click', async () => {
 });
 
 // Initial Load
+loadTotalGames();
 loadSettings();
 </script>
 

@@ -120,8 +120,9 @@ header a.button:hover { background:#0056b3; }
 <script>
 function eloSymbol(k, delta) {
   // K-only mapping
-  if(k === 24) return delta > 0 ? '+' : '-';
-  if(k === 48) return delta > 0 ? '++' : '--';
+  console.log("K:", k, "Delta:", delta);
+  if(k === 48) return delta > 0 ? '+' : '-';
+  if(k === 96) return delta > 0 ? '++' : '--';
   return delta > 0 ? '+' : '-';
 }
 

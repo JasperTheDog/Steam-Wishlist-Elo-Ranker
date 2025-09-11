@@ -37,6 +37,8 @@ class Settings(BaseModel):
     prefer_close_rating: bool = False
     prefer_far_rating: bool = False
     prefer_lower_played: bool = False
+    prefer_new_choices: bool = False
+    choices_history_length: int = 30
 
 class Game(BaseModel):
     appid: str
@@ -90,6 +92,8 @@ def load_settings() -> Dict:
         "prefer_close_rating": False,
         "prefer_far_rating": False,
         "prefer_lower_played": False,
+        "prefer_new_choices": False,
+        "choices_history_length": 30
     }
 
 def save_settings(d: Dict):
@@ -117,7 +121,7 @@ def increment_version() -> int:
 def expected_score(r_a: float, r_b: float) -> float:
     return 1.0 / (1.0 + 10 ** ((r_b - r_a) / 400.0))
 
-def update_elo(r_winner: float, r_loser: float, k: float = 24.0):
+def update_elo(r_winner: float, r_loser: float, k: float = 48.0):
     e_win = expected_score(r_winner, r_loser)
     e_lose = expected_score(r_loser, r_winner)
     r_winner_new = r_winner + k * (1 - e_win)
@@ -207,19 +211,14 @@ def game_history(appid: str):
 @app.post("/delete_game/{appid}")
 def delete_game(appid: str):
     data = load_wishlist()
-    history = []
-    if HISTORY_FILE.exists():
-        history = json.loads(HISTORY_FILE.read_text())
 
     if appid not in data:
         raise HTTPException(404, "Game not found")
 
-    # remove game + history
+    # remove game
     data.pop(appid, None)
-    history = [h for h in history if h["winner"] != appid and h["loser"] != appid]
 
     save_wishlist(data)
-    HISTORY_FILE.write_text(json.dumps(history, indent=2))
 
     return {"status": "ok", "message": f"Game {appid} deleted"}
 
@@ -271,10 +270,13 @@ async def pair(
     prefer_close_rating: bool = False,
     prefer_far_rating: bool = False,
     prefer_lower_played: bool = False,
+    prefer_new_choices: bool = False,
+    choices_history_length: int = 30,
     challenger: Optional[str] = None,
 ):
     data = load_wishlist()
     games = list(data.values())
+    
     if len(games) < 2:
         raise HTTPException(400, "Need at least 2 games in wishlist")
 
@@ -288,6 +290,16 @@ async def pair(
         # Compose sort keys based on preferences
         def sort_key(g):
             keys = []
+            if prefer_new_choices:
+                # Load recent history
+                recent_hist = []
+                if HISTORY_FILE.exists():
+                    recent_hist = json.loads(HISTORY_FILE.read_text())
+                recent_appids = set()
+                for h in reversed(recent_hist[-choices_history_length:]):
+                    recent_appids.add(h["winner"])
+                    recent_appids.add(h["loser"])
+                keys.append(1 if g["appid"] in recent_appids else 0)
             # Sort by lower player first if preferred
             if prefer_lower_played:
                 keys.append(g.get("played", 0))
@@ -326,7 +338,7 @@ async def pair(
 # Vote endpoint
 # -----------------------
 @app.post("/vote")
-def vote(payload: VotePayload, k: float = 24.0):
+def vote(payload: VotePayload, k: float = 48.0):
     data = load_wishlist()
     winner = data.get(payload.winner_appid)
     loser = data.get(payload.loser_appid)
@@ -442,6 +454,14 @@ def search(q: str):
     data = load_wishlist()
     results = [g for g in data.values() if q.lower() in g["title"].lower()]
     return {"count": len(results), "results": results[:50]}
+
+# -----------------------
+# Num games endpoint
+# -----------------------
+@app.get("/num_games")
+def num_games():
+    data = load_wishlist()
+    return {"num_games": len(data)}
 
 # -----------------------
 # Leaderboard endpoint

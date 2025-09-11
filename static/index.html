@@ -108,6 +108,8 @@ async function fetchPair() {
   // Only one of these should be true at a time
   if (!settings.prefer_close_rating && settings.prefer_far_rating) params.append('prefer_far_rating', 'true');
   if (settings.prefer_lower_played) params.append('prefer_lower_played', 'true');
+  if (settings.prefer_new_choices) params.append('prefer_new_choices', 'true');
+  if (settings.choices_history_length) params.append('choices_history_length', settings.choices_history_length);
 
   const url = `/pair?${params.toString()}`;
   const res = await fetch(url);
@@ -139,7 +141,7 @@ async function fetchPair() {
   document.getElementById('right-steam-link').href = `https://store.steampowered.com/app/${rightGame.appid}/`;
 }
 
-async function vote(winner, loser, k=24) {
+async function vote(winner, loser, k=48) {
   const res = await fetch('/vote?k=' + k, {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
@@ -183,10 +185,10 @@ async function initializePage() {
 }
 
 // Event listeners
-document.getElementById('left-btn').addEventListener('click', () => { if(currentPair) vote(currentPair.a.appid, currentPair.b.appid, 24); });
-document.getElementById('right-btn').addEventListener('click', () => { if(currentPair) vote(currentPair.b.appid, currentPair.a.appid, 24); });
-document.getElementById('left-strong-btn').addEventListener('click', () => { if(currentPair) vote(currentPair.a.appid, currentPair.b.appid, 48); });
-document.getElementById('right-strong-btn').addEventListener('click', () => { if(currentPair) vote(currentPair.b.appid, currentPair.a.appid, 48); });
+document.getElementById('left-btn').addEventListener('click', () => { if(currentPair) vote(currentPair.a.appid, currentPair.b.appid, 48); });
+document.getElementById('right-btn').addEventListener('click', () => { if(currentPair) vote(currentPair.b.appid, currentPair.a.appid, 48); });
+document.getElementById('left-strong-btn').addEventListener('click', () => { if(currentPair) vote(currentPair.a.appid, currentPair.b.appid, 96); });
+document.getElementById('right-strong-btn').addEventListener('click', () => { if(currentPair) vote(currentPair.b.appid, currentPair.a.appid, 96); });
 document.getElementById('pass-btn').addEventListener('click', () => { if (currentPair) passVote(); });
 document.getElementById('exit-challenger-mode').addEventListener('click', () => {
     window.location.href = '/index.html';
